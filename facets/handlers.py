@@ -117,6 +117,9 @@ class CssMin(BaseHandler):
     
 
 class UglifyJs(InOutHandler):
-    cmd = (settings.MEDIA_CACHE_UGLIFYJS,)
+    if isinstance(settings.MEDIA_CACHE_UGLIFYJS, (tuple, list)):
+        cmd = settings.MEDIA_CACHE_UGLIFYJS
+    else:
+        cmd = (settings.MEDIA_CACHE_UGLIFYJS,)
 
 media_handlers = MediaHandlers()
