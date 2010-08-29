@@ -12,7 +12,7 @@ __HANDLERS = {
         'facets.handlers.CssMin',
     ),
     'js': (
-        'facets.handlers.UglifyJs',
+        'facets.handlers.GoogleClosureCompiler',
     ),
 }
 
@@ -39,4 +39,8 @@ setattr(settings, 'MEDIA_CACHE_HANDLERS', getattr(settings,
 
 setattr(settings, 'MEDIA_CACHE_UGLIFYJS', getattr(settings,
     'MEDIA_CACHE_UGLIFYJS', None
+))
+
+setattr(settings, 'MEDIA_GOOGLE_COMPILER', getattr(settings,
+    'MEDIA_GOOGLE_COMPILER', None
 ))

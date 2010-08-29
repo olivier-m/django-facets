@@ -122,4 +122,7 @@ class UglifyJs(InOutHandler):
     else:
         cmd = (settings.MEDIA_CACHE_UGLIFYJS,)
 
+class GoogleClosureCompiler(InOutHandler):
+    cmd = settings.MEDIA_GOOGLE_COMPILER
+
 media_handlers = MediaHandlers()
