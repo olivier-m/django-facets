@@ -13,7 +13,7 @@ setup(
     description='Media collections manager for Django.',
     author='Olivier Meunier',
     author_email='om@neokraft.net',
-    url='http://bitbucket.org/cedarlab/django-facets/',
+    url='https://github.com/olivier-m/django-facets',
     packages=packages,
     classifiers=[
         'Development Status :: %s' % version,
