@@ -2,26 +2,46 @@
 #
 # This file is part of Django facets released under the BSD license.
 # See the LICENSE for more information.
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from StringIO import StringIO
 import hashlib
 import os.path
-from urlparse import urljoin
 
 import html5lib
 from html5lib import treebuilders
 
-from facets.utils import files_checksum
+from django.conf import settings
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django import template
+
+from facets.utils import normalize_css_urls
+
 
 def _attr_data(data):
     data = data.replace("&", "&amp;").replace("<", "&lt;")
     data = data.replace("\"", "&quot;").replace(">", "&gt;")
     return data
 
+
 class CollectionException(Exception):
     pass
+
+
+class MediaCollectionList(set):
+    def check_path(self, element):
+        by_path = dict([(x.path, x) for x in self])
+        if element.path in by_path and not(element == by_path[element.path]):
+            raise CollectionException(
+                'A collection named "%s" already exists with a different content' % element.path
+            )
+
+    def add(self, element):
+        self.check_path(element)
+        super(MediaCollectionList, self).add(element)
+
+    def update(self, iterable):
+        [self.check_path(x) for x in iterable]
+        super(MediaCollectionList, self).update(iterable)
+
 
 class MediaCollection(object):
     def __init__(self, data, path):
@@ -30,126 +50,181 @@ class MediaCollection(object):
         self.node = node
         self.path = path
         self.init_collection()
-    
+
     def __eq__(self, other):
         return isinstance(other, self.__class__) and hash(self) == hash(other)
-    
+
     def __hash__(self):
         m = hashlib.md5()
         [m.update(x) for x in self.media]
         m.update(self.path)
         return int(m.hexdigest(), 16)
-    
+
     def clear(self):
         self.type = None
         self.attrs = {}
         self.media = []
-    
+
     def init_collection(self):
         self.clear()
         for n in self.node.childNodes:
             if n.nodeType == n.TEXT_NODE:
                 continue
             if n.nodeType != n.ELEMENT_NODE:
-                raise CollectionException('Collection contains non element nodes.')
-            
+                raise CollectionException('Collection should not contain non element nodes.')
+
             name = n.nodeName.lower()
             if self.type and self.type != name:
-                raise CollectionException('Collection contains elements of type %s only.' % self.type)
-            
+                raise CollectionException('Collection should contain elements of type %s only.' % self.type)
+
             self.type = name
-            
+
             if name == 'link':
                 self.set_prop_link(n)
             elif name == 'script':
                 self.set_prop_script(n)
-    
+
     def attr_value(self, node, name, default=None):
         attr = node.attributes.get(name)
         if attr is None:
             return default
-        
+
         return attr.value
-    
+
     def set_prop_link(self, node):
         rel = self.attr_value(node, 'rel')
         href = self.attr_value(node, 'href')
         ctype = self.attr_value(node, 'type', 'text/css')
         media = self.attr_value(node, 'media', 'screen')
-        
+
         if self.attrs.get('rel') not in (None, rel):
             raise CollectionException('All rel attributes should be the same in collection.')
         if self.attrs.get('type') not in (None, ctype):
             raise CollectionException('All type attributes should be the same in collection.')
         if self.attrs.get('media') not in (None, media):
             raise CollectionException('All media attributes should be the same in collection.')
-        
+
         self.attrs.update({
             'rel': rel, 'type': ctype, 'media': media
         })
-        
+
         self.media.append(href)
-    
+
     def set_prop_script(self, node):
         ctype = self.attr_value(node, 'type', 'text/javascript')
         src = self.attr_value(node, 'src')
-        
+
         if src is None:
             raise CollectionException('No src attribute in collection script tag.')
         if self.attrs.get('type') not in (None, ctype):
-            raise CollectionException('All type attributes should be the same in collection.') 
-        
+            raise CollectionException('All type attributes should be the same in collection.')
+
         self.attrs.update({
             'type': ctype,
         })
-        
+
         self.media.append(src)
-    
-    def get_html(self, base_url):
+
+    def get_html(self):
         if self.type == 'link':
-            return self.get_html_link(base_url)
+            return self.get_html_link()
         elif self.type == 'script':
-            return self.get_html_script(base_url)
-    
-    def get_html_link(self, base_url):
+            return self.get_html_script()
+
+    def get_html_link(self):
         attrs = dict(self.attrs)
-        attrs['href'] = urljoin(base_url, self.path)
+        attrs['href'] = staticfiles_storage.url(self.path)
         tag = '<link %s />'
         return tag % ' '.join(
-            ['%s="%s"' % (k, _attr_data(v)) for k,v in attrs.items()]
+            ['%s="%s"' % (k, _attr_data(v)) for k, v in attrs.items()]
         )
-    
-    def get_html_script(self, base_url):
+
+    def get_html_script(self):
         attrs = dict(self.attrs)
-        attrs['src'] = urljoin(base_url, self.path)
+        attrs['src'] = staticfiles_storage.url(self.path)
         tag = '<script %s></script>'
         return tag % ' '.join(
-            ['%s="%s"' % (k, _attr_data(v)) for k,v in attrs.items()]
+            ['%s="%s"' % (k, _attr_data(v)) for k, v in attrs.items()]
         )
-    
-    def make_file(self, media_store, media_url, cache_root):
-        """
-        Creates a collection file and return its destination path and url
-        """
-        files = [os.path.join(cache_root, media_store[y]) for y in
-            [x[len(media_url):] for x in self.media]
-        ]
-        
+
+    def get_data(self):
         out = StringIO()
-        for f in files:
-            fp = open(f, 'rb')
-            out.write(fp.read())
-            out.write('\n')
-            fp.close()
-        
-        outurl = ('-%s' % files_checksum(*files)).join(
-            os.path.splitext(self.path)
-        )
-        outfile = os.path.join(cache_root, outurl)
-        
-        fp = open(outfile, 'wb')
-        fp.write(out.getvalue())
-        fp.close()
-        
-        return outfile, outurl
-    
+
+        for x in self.media:
+            if not x.startswith(staticfiles_storage.base_url):
+                raise CollectionException("Collection contains a non static file.")
+
+            path = x[len(staticfiles_storage.base_url):]
+            filename = staticfiles_storage.path(path)
+
+            with open(filename, 'rb') as fp:
+                data = fp.read()
+
+                if self.type == "link" and self.attrs.get("type") == "text/css":
+                    data = normalize_css_urls(data, os.path.dirname(path))
+
+                out.write(data)
+                out.write("\n")
+
+        return out.getvalue()
+
+
+def parse_templates():
+    # Most parts of this code comes from django assets
+    #
+    template_dirs = []
+    if 'django.template.loaders.filesystem.Loader' in settings.TEMPLATE_LOADERS:
+        template_dirs.extend(settings.TEMPLATE_DIRS)
+    if 'django.template.loaders.app_directories.Loader' in settings.TEMPLATE_LOADERS:
+        from django.template.loaders.app_directories import app_template_dirs
+        template_dirs.extend(app_template_dirs)
+
+    for template_dir in template_dirs:
+        for directory, _ds, files in os.walk(template_dir):
+            for filename in files:
+                if filename.endswith('.html'):
+                    #total_count += 1
+                    tmpl_path = os.path.join(directory, filename)
+                    try:
+                        yield parse_template(tmpl_path)
+                    except Exception, e:
+                        yield e
+
+
+def parse_template(tmpl_path):
+    from facets.templatetags.facets import MediaCollectionNode
+
+    with open(tmpl_path, 'rb') as fp:
+        contents = fp.read()
+
+    try:
+        t = template.Template(contents)
+    except template.TemplateSyntaxError, e:
+        raise Exception("django parser failed, error was: %s (%s)" % (str(e), tmpl_path))
+    else:
+        result = set()
+
+        def _recurse_node(node):
+            # depending on whether the template tag is added to
+            # builtins, or loaded via {% load %}, it will be
+            # available in a different module
+            if isinstance(node, MediaCollectionNode):
+                # try to resolve this node's data; if we fail,
+                # then it depends on view data and we cannot
+                # manually rebuild it.
+                try:
+                    collection = node.resolve()
+                except template.VariableDoesNotExist:
+                    #if options.get('verbosity') >= 2:
+                    #    print self.style.ERROR('\tskipping asset %s, depends on runtime data.' % node.output)
+                    raise Exception("skipping collection %s, depends on runtime data." % node.output)
+                else:
+                    result.add(collection)
+            # see Django #7430
+            for subnode in hasattr(node, 'nodelist') and node.nodelist or []:
+                _recurse_node(subnode)
+
+        for node in t:  # don't move into _recurse_node, ``Template`` has a .nodelist attribute
+            _recurse_node(node)
+
+        return result

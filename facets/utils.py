@@ -1,44 +1,44 @@
 # -*- coding: utf-8 -*-
-#
-# This file is part of Django facets released under the BSD license.
-# See the LICENSE for more information.
-import hashlib
-import os
-import shutil
+import re
+from urllib import unquote
+from urlparse import urljoin, urldefrag
 
 from django.conf import settings
-from django.utils.importlib import import_module
 
-from facets.handlers import media_handlers
+CSS_URL_PATTERNS = (
+    re.compile(r"""(url\(['"]{0,1}\s*(.*?)["']{0,1}\))"""),
+    re.compile(r"""(@import\s*["']\s*(.*?)["'])"""),
+)
 
-def files_checksum(*files):
-    m = hashlib.md5()
-    for f in files:
-        fp = open(f, 'rb')
-        while True:
-            data = fp.read(128)
-            if not data:
-                break
-            m.update(data)
-    
-    return m.hexdigest()[0:8]
 
-def copy_file(src, dst, media_store):
-    src_path = os.path.join(settings.MEDIA_ROOT, src)
-    dst_path = os.path.join(settings.MEDIA_CACHE_ROOT, dst)
-    dst_dir = os.path.dirname(dst_path)
-    
-    data = open(src_path, 'rb').read()
-    
-    # Applying media handlers
-    data = media_handlers.apply_handlers(src, data, media_store)
-    
-    if not os.path.exists(dst_dir):
-        os.makedirs(dst_dir)
-    
-    fp = open(dst_path, 'wb')
-    fp.write(data)
-    fp.close
-    shutil.copymode(src_path, dst_path)
-    shutil.copystat(src_path, dst_path)
+def normalize_css_urls(content, basedir, callback=None):
+    """
+    Transform all URLs in a CSS content as absolute paths.
+    """
+    def adapt_css_url(match):
+        groups = list(match.groups())
+        if groups[1].find('://') != -1:
+            return groups[0]
 
+        origin, fragment = urldefrag(groups[1])
+        new_url = urljoin(base_src, origin)
+
+        if not new_url.startswith(settings.STATIC_URL):
+            return groups[0]
+
+        if callable(callback):
+            new_url = callback(new_url)
+
+        if fragment:
+            new_url += "#%s" % fragment
+
+        return 'url("%s")' % unquote(new_url)
+
+    base_src = urljoin(settings.STATIC_URL, basedir)
+    if not base_src.endswith("/"):
+        base_src += "/"
+
+    for pattern in CSS_URL_PATTERNS:
+        content = pattern.sub(adapt_css_url, content)
+
+    return content

@@ -6,41 +6,19 @@ import os.path
 
 from django.conf import settings
 
-__HANDLERS = {
-    'css': (
-        'facets.handlers.CssUrls',
-        'facets.handlers.CssMin',
-    ),
-    'js': (
-        'facets.handlers.GoogleClosureCompiler',
-    ),
-}
+__HANDLERS = (
+    'facets.handlers.CssUrls',
+)
 
-setattr(settings, 'MEDIA_CACHE_ACTIVE', getattr(settings,
-    'MEDIA_CACHE_ACTIVE', False
+setattr(settings, 'FACETS_ACTIVE', getattr(settings,
+    'FACETS_ACTIVE', not settings.DEBUG
 ))
 
-setattr(settings, 'MEDIA_CACHE_ROOT', getattr(settings,
-    'MEDIA_CACHE_ROOT', None
+setattr(settings, 'FACETS_HANDLERS', getattr(settings,
+    'FACETS_HANDLERS', __HANDLERS
 ))
 
-setattr(settings, 'MEDIA_CACHE_URL', getattr(settings,
-    'MEDIA_CACHE_URL', settings.MEDIA_URL
-))
-
-setattr(settings, 'MEDIA_CACHE_STORE', getattr(settings,
-    'MEDIA_CACHE_STORE',
-    settings.MEDIA_CACHE_ROOT and os.path.join(settings.MEDIA_CACHE_ROOT, 'store.py') or None
-))
-
-setattr(settings, 'MEDIA_CACHE_HANDLERS', getattr(settings,
-    'MEDIA_CACHE_HANDLERS', __HANDLERS
-))
-
-setattr(settings, 'MEDIA_CACHE_UGLIFYJS', getattr(settings,
-    'MEDIA_CACHE_UGLIFYJS', None
-))
-
-setattr(settings, 'MEDIA_GOOGLE_COMPILER', getattr(settings,
-    'MEDIA_GOOGLE_COMPILER', None
+setattr(settings, 'FACETS_STORE', getattr(settings,
+    'FACETS_STORE',
+    settings.STATIC_ROOT and os.path.join(settings.STATIC_ROOT, 'store.json') or None
 ))
