@@ -198,7 +198,7 @@ class JsMin(BaseHandler):
         try:
             from jsmin import jsmin
         except ImportError:
-            raise HandlerError("Unable to import cssmin module.")
+            raise HandlerError("Unable to import jsmin module.")
 
         data = jsmin(self.read())
         if data:
