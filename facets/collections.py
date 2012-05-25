@@ -162,6 +162,8 @@ class MediaCollection(object):
 
                 if self.type == "link" and self.attrs.get("type") == "text/css":
                     data = normalize_css_urls(data, os.path.dirname(path))
+                elif self.type == "script":
+                    data = "(function() {\n%s\n})();" % data
 
                 out.write(data)
                 out.write("\n")
