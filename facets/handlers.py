@@ -80,7 +80,7 @@ class BaseHandler(object):
 
     def read(self):
         with self.storage.open(self.path, 'rb') as fp:
-            return smart_str(fp.read())
+            return force_unicode(fp.read())
 
     def save(self, data):
         with self.storage.open(self.path, 'wb') as fp:

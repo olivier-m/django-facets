@@ -12,6 +12,7 @@ from html5lib import treebuilders
 from django.conf import settings
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django import template
+from django.utils.encoding import force_unicode
 
 from facets.utils import normalize_css_urls
 
@@ -158,7 +159,7 @@ class MediaCollection(object):
             filename = staticfiles_storage.path(path)
 
             with open(filename, 'rb') as fp:
-                data = fp.read()
+                data = force_unicode(fp.read())
 
                 if self.type == "link" and self.attrs.get("type") == "text/css":
                     data = normalize_css_urls(data, os.path.dirname(path))

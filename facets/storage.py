@@ -92,7 +92,7 @@ class FacetsFilesMixin(object):
                 os.makedirs(os.path.dirname(path))
 
             with open(path, 'wb') as fp:
-                fp.write(data)
+                fp.write(smart_str(data))
             os.chmod(path, 0755)
             sys.stdout.write("Wrote collection '%s'\n" % path)
 
