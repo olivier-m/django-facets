@@ -52,6 +52,12 @@ class MediaHandlers(object):
                         (repr(klass), path, str(e))
 
                 sys.stderr.write("%s\n" % msg)
+            except BaseException, e:
+                msg = "ERROR: Unable to execute handler %s on %s. Error was: %s" % \
+                        (repr(klass), path, str(e))
+
+                sys.stderr.write("%s\n" % msg)
+                raise
 
 
 class HandlerError(Exception):
