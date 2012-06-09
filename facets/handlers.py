@@ -281,7 +281,7 @@ class GZip(BaseHandler):
         except Exception, e:
             raise HandlerError(str(e))
 
-        fp.write(in_data)
+        fp.write(smart_str(in_data))
         fp.close()
 
         # apply same mode as source file
