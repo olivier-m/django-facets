@@ -276,19 +276,18 @@ class Jpegoptim(CommandHandler):
 
 
 class GZip(BaseHandler):
-    match = r"\.(htm|html|js|css|txt)"
+    match = r"\.(htm|html|js|css|txt|eot|ttf|woff)"
 
     def render(self):
         filename = "%s.gz" % self.storage.path(self.path)
-        in_data = self.read()
+        with open(self.storage.path(self.path)) as f_in:
+            try:
+                f_out = GzipFile(filename, "wb", compresslevel=self.options.get('LEVEL', 5))
+            except Exception, e:
+                raise HandlerError(str(e))
 
-        try:
-            fp = GzipFile(filename, "wb", compresslevel=self.options.get('LEVEL', 5))
-        except Exception, e:
-            raise HandlerError(str(e))
-
-        fp.write(smart_str(in_data))
-        fp.close()
+            [f_out.write(x) for x in f_in]
+            f_out.close()
 
         # apply same mode as source file
         self.copy_mode(to_file=filename)
