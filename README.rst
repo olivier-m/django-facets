@@ -163,7 +163,7 @@ facets.handlers.UglifyJs
   | ``COMMAND``: A list for command to call, with arguments (file name would be added automatically)
   | eg. ``["/usr/bin/env", "node", "/path/to/uglifyjs", "--ascii"]``
 
-This handler minifies JavaScript files using `UglifyJs <https://github.com/mishoo/UglifyJS>`_.
+This handler minifies JavaScript files using `UglifyJs 2 <https://github.com/mishoo/UglifyJS2>`_.
 
 facets.handlers.GoogleClosureCompiler
 -------------------------------------

@@ -4,7 +4,7 @@
 # See the LICENSE for more information.
 from setuptools import setup, find_packages
 
-version = '0.6'
+version = '0.7'
 packages = ['facets'] + ['facets.%s' % x for x in find_packages('facets',)]
 
 setup(

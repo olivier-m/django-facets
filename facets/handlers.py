@@ -2,6 +2,7 @@
 #
 # This file is part of Django facets released under the BSD license.
 # See the LICENSE for more information.
+from distutils.spawn import find_executable
 from gzip import GzipFile
 import os
 import re
@@ -107,7 +108,7 @@ class CommandHandler(BaseHandler):
     default_cmd = None
 
     def get_command(self):
-        cmd = self.options.get('COMMAND', self.default_cmd)
+        cmd = list(self.options.get('COMMAND', self.default_cmd))
 
         if not cmd:
             raise HandlerError("You should provide a COMMAND option.")
@@ -116,9 +117,11 @@ class CommandHandler(BaseHandler):
             raise HandlerError("COMMAND option should be a tuple of arguments.")
 
         if not cmd[0] or not os.path.isfile(cmd[0]):
-            raise HandlerError('Command "%s" not found.' % cmd[0])
+            cmd[0] = find_executable(cmd[0])
+            if not cmd[0]:
+                raise HandlerError('Command "%s" not found.' % cmd[0])
 
-        return list(cmd)
+        return cmd
 
     def get_full_command(self):
         cmd = self.get_command()
@@ -216,9 +219,8 @@ class UglifyJs(CommandHandler):
 
     def get_command(self):
         cmd = super(UglifyJs, self).get_command()
-        if "--overwrite" not in cmd:
-            cmd.append("--overwrite")
 
+        cmd.extend(['-o', self.storage.path(self.path)])
         return cmd
 
 
