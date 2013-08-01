@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 #
-# This file is part of Django facets released under the BSD license.
+# This file is part of Django facets released under the MIT license.
 # See the LICENSE for more information.
 import os.path
 
 from django.conf import settings
+
+from .version import __version__
 
 __HANDLERS = (
     'facets.handlers.CssUrls',

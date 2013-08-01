@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# This file is part of Django facets released under the BSD license.
+# This file is part of Django facets released under the MIT license.
 # See the LICENSE for more information.
 from django import template
 from django.conf import settings
