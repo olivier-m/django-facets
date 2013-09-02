@@ -172,13 +172,26 @@ class MediaCollection(object):
         return out.getvalue()
 
 
+def get_loaders():
+    def chain(root):
+        if isinstance(root, (list, tuple)):
+            for el in root:
+                for e in chain(el):
+                    yield e
+        else:
+            yield root
+
+    return list(chain(settings.TEMPLATE_LOADERS))
+
 def parse_templates():
     # Most parts of this code comes from django assets
     #
     template_dirs = []
-    if 'django.template.loaders.filesystem.Loader' in settings.TEMPLATE_LOADERS:
+    loaders = get_loaders()
+
+    if 'django.template.loaders.filesystem.Loader' in loaders:
         template_dirs.extend(settings.TEMPLATE_DIRS)
-    if 'django.template.loaders.app_directories.Loader' in settings.TEMPLATE_LOADERS:
+    if 'django.template.loaders.app_directories.Loader' in loaders:
         from django.template.loaders.app_directories import app_template_dirs
         template_dirs.extend(app_template_dirs)
 
