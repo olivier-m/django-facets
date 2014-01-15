@@ -2,4 +2,4 @@
 #
 # This file is part of Django facets released under the MIT license.
 # See the LICENSE for more information.
-__version__ = '0.8.1'
+__version__ = '0.8.2'

@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib.staticfiles.storage import StaticFilesStorage
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
+from django.test.utils import override_settings
 from django.utils.encoding import force_unicode, smart_str, filepath_to_uri
 
 from facets.collections import MediaCollectionList, parse_templates
@@ -73,19 +74,14 @@ class FacetsFilesMixin(object):
         if dry_run:
             return
 
-        # Browse for collections
-        FACETS_ACTIVE = settings.FACETS_ACTIVE
-        settings.FACETS_ACTIVE = False
-
-        collection_list = MediaCollectionList()
-        for _collections in parse_templates():
-            if isinstance(_collections, Exception):
-                msg = "ERROR: Unable to get collections - %s" % _collections
-                sys.stderr.write("%s\n" % msg)
-            else:
-                collection_list.update(_collections)
-
-        settings.FACETS_ACTIVE = FACETS_ACTIVE
+        with override_settings(FACETS_ACTIVE=True):
+            collection_list = MediaCollectionList()
+            for _collections in parse_templates():
+                if isinstance(_collections, Exception):
+                    msg = "ERROR: Unable to get collections - %s" % _collections
+                    sys.stderr.write("%s\n" % msg)
+                else:
+                    collection_list.update(_collections)
 
         for collection in collection_list:
             data = collection.get_data()
@@ -113,7 +109,10 @@ class FacetsFilesMixin(object):
             storage, path = paths[name]
 
             with storage.open(path) as original_file:
-                media_store[self.cache_key(name)] = self.hashed_name(force_unicode(name), original_file)
+                media_store[self.cache_key(name)] = self.hashed_name(
+                    force_unicode(name),
+                    original_file
+                )
 
         # Now, apply handlers and create cached files
         from facets.handlers import media_handlers
