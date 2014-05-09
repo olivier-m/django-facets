@@ -3,45 +3,62 @@
 # This file is part of Django facets released under the MIT license.
 # See the LICENSE for more information.
 import re
-from urllib import unquote
-from urlparse import urljoin, urldefrag
+from urlparse import urljoin, urlsplit, urlunsplit
 
 from django.conf import settings
 
 CSS_URL_PATTERNS = (
-    re.compile(r"""(url\(['"]{0,1}\s*(.*?)["']{0,1}\))"""),
-    re.compile(r"""(@import\s*["']\s*(.*?)["'])"""),
+    (re.compile(r"""(url\(['"]{0,1}\s*(.*?)["']{0,1}\))"""), """url("{0}")"""),
+    (re.compile(r"""(@import\s*["']\s*(.*?)["'])"""), """@import url("{0}")"""),
 )
 
 
-def normalize_css_urls(content, basedir, callback=None):
+def normalize_css_urls(content, basedir, path_callback=None):
     """
     Transform all URLs in a CSS content as absolute paths.
     """
-    def adapt_css_url(match):
+    def adapt_css_url(match, repl):
         groups = list(match.groups())
-        if groups[1].find('://') != -1:
+        original = groups[1]
+
+        # Ignore HTTP URLs, data-uri and fragments
+        parts = urlsplit(original)
+
+        # Ignore URLs with scheme or netloc - http(s), data, //
+        if parts.scheme or parts.netloc:
             return groups[0]
 
-        origin, fragment = urldefrag(groups[1])
-        new_url = urljoin(base_src, origin)
-
-        if not new_url.startswith(settings.STATIC_URL):
+        # Return original URL if not path (could be just a fragment)
+        if not parts.path:
             return groups[0]
 
-        if callable(callback):
-            new_url = callback(new_url)
+        new_path = urljoin(base_src, parts.path)
 
-        if fragment:
-            new_url += "#%s" % fragment
+        if callable(path_callback):
+            new_path = path_callback(new_path)
 
-        return 'url("%s")' % unquote(new_url)
+        # Rebuild URL
+        parts = list(parts)
+        parts[2] = new_path
+
+        # special case for some @font-face hacks
+        if '?#' in original:
+            parts[2] += '?'
+            if not parts[4]:
+                parts[2] += '#'
+        elif original.endswith('?'):
+            parts[2] += '?'
+        elif original.endswith('#'):
+            parts[2] += '#'
+
+        return repl.format(urlunsplit(parts))
 
     base_src = urljoin(settings.STATIC_URL, basedir)
     if not base_src.endswith("/"):
         base_src += "/"
 
-    for pattern in CSS_URL_PATTERNS:
-        content = pattern.sub(adapt_css_url, content)
+    for pattern, repl in CSS_URL_PATTERNS:
+        rep_func = lambda match: adapt_css_url(match, repl)
+        content = pattern.sub(rep_func, content)
 
     return content

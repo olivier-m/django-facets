@@ -7,7 +7,6 @@ from gzip import GzipFile
 import os
 import re
 from subprocess import Popen, PIPE
-import sys
 from urlparse import urljoin
 
 
@@ -42,23 +41,15 @@ class MediaHandlers(object):
             if klass.match is None or not re.search(klass.match, path):
                 continue
 
+            handler = klass(storage, path, media_store, options)
+            error = None
+
             try:
-                handler = klass(storage, path, media_store, options)
                 handler.render()
+            except HandlerError as e:
+                error = e
 
-                msg = "Applied handler %s on '%s'" % (repr(klass), media_store[path])
-                sys.stdout.write("%s\n" % msg)
-            except HandlerError, e:
-                msg = "WARNING: Unable to execute handler %s on %s. Error was: %s" % \
-                        (repr(klass), path, str(e))
-
-                sys.stderr.write("%s\n" % msg)
-            except BaseException, e:
-                msg = "ERROR: Unable to execute handler %s on %s. Error was: %s" % \
-                        (repr(klass), path, str(e))
-
-                sys.stderr.write("%s\n" % msg)
-                raise
+            yield media_store[path], handler, error
 
 
 class HandlerError(Exception):

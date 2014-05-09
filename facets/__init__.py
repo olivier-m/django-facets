@@ -19,8 +19,3 @@ setattr(settings, 'FACETS_ACTIVE', getattr(settings,
 setattr(settings, 'FACETS_HANDLERS', getattr(settings,
     'FACETS_HANDLERS', __HANDLERS
 ))
-
-setattr(settings, 'FACETS_STORE', getattr(settings,
-    'FACETS_STORE',
-    settings.STATIC_ROOT and os.path.join(settings.STATIC_ROOT, 'store.json') or None
-))

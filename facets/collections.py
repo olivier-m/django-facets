@@ -76,7 +76,9 @@ class MediaCollection(object):
 
             name = n.nodeName.lower()
             if self.type and self.type != name:
-                raise CollectionException('Collection should contain elements of type %s only.' % self.type)
+                raise CollectionException(
+                    'Collection should contain elements of type {0} only.'.format(self.type)
+                )
 
             self.type = name
 
@@ -183,6 +185,7 @@ def get_loaders():
 
     return list(chain(settings.TEMPLATE_LOADERS))
 
+
 def parse_templates():
     # Most parts of this code comes from django assets
     #
@@ -231,9 +234,9 @@ def parse_template(tmpl_path):
                 try:
                     collection = node.resolve()
                 except template.VariableDoesNotExist:
-                    #if options.get('verbosity') >= 2:
-                    #    print self.style.ERROR('\tskipping asset %s, depends on runtime data.' % node.output)
-                    raise Exception("skipping collection %s, depends on runtime data." % node.output)
+                    raise Exception(
+                        'skipping collection {0}, depends on runtime data.'.format(node.output)
+                    )
                 else:
                     result.add(collection)
             # see Django #7430

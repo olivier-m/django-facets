@@ -26,11 +26,21 @@ FACETS_ACTIVE
 This setting enables cache. Its default value is the negation of ``DEBUG`` setting. You can set
 it manualy if you want to test your cache in debug mode.
 
-FACETS_STORE
-------------
+CACHES
+------
 
-Django Facets keeps track of cached files in a JSON file. By default, it is located in
-``STATIC_ROOT/store.json`` but you can set it to any place you want.
+Django Facets keeps track of cached files using Django cache system. It tries to use the cache
+named "facets" and falls back to default. Here a configuration example::
+
+  CACHES = CACHES = {
+    'default': {
+        # Whatever you want
+    },
+    'facets': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': facets_location
+    }
+}
 
 FACETS_HANDLERS
 ---------------
@@ -138,7 +148,7 @@ would become::
       background: url("/static/img/title-e221e1b36656.png");
   }
 
-**Note**: It is recommanded you always set this handler.
+**Note**: It is recommanded you always set this handler in first position.
 
 facets.handlers.CssMin
 ----------------------
