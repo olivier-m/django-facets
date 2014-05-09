@@ -2,8 +2,6 @@
 #
 # This file is part of Django facets released under the MIT license.
 # See the LICENSE for more information.
-import os.path
-
 from django.conf import settings
 
 from .version import __version__

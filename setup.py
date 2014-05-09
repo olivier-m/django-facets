@@ -4,16 +4,22 @@
 # See the LICENSE for more information.
 from setuptools import setup, find_packages
 
-execfile('facets/version.py')
 packages = find_packages(exclude=['*.tests'])
+
+with open('facets/version.py') as fp:
+    g = {}
+    exec(fp.read(), g)
+    version = g['__version__']
+
 
 def readme():
     with open('README.rst', 'r') as fp:
         return fp.read()
 
+
 setup(
     name='facets',
-    version=__version__,
+    version=version,
     description='Asset manager for Django.',
     long_description=readme(),
     author='Olivier Meunier',
@@ -23,6 +29,7 @@ setup(
     keywords='django assets css javascript compression',
     install_requires=[
         'django>=1.4',
+        'html5lib>=0.95'
     ],
     packages=packages,
     classifiers=[
