@@ -1,5 +1,9 @@
-Introduction
-============
+=============
+Django Facets
+=============
+
+Features
+========
 
 Django facets is an assets manager providing a cache manager for static files, CSS, Javascript,
 images compression and a collection (concatenation) system for CSS and JavaScript.
@@ -12,7 +16,8 @@ Installation
 
 - Download the package and type ``python setup.py install``
 - Add ``django.contrib.staticfiles`` and ``facets`` to your ``INSTALLED_APPS``
-- Set ``STATICFILES_STORAGE`` setting to ``facets.storage.FacetsFilesStorage``
+- Set ``STATICFILES_STORAGE`` setting to ``facets.storages.FacetsFilesStorage``
+- Add, **in first position** ``facets.finders.FacetsFinder`` to ``STATICFILES_FINDERS`` setting
 
 
 Configuration
@@ -20,8 +25,8 @@ Configuration
 
 Django facets needs some configuration settings.
 
-FACETS_ACTIVE
--------------
+FACETS_ENABLED
+--------------
 
 This setting enables cache. Its default value is the negation of ``DEBUG`` setting. You can set
 it manualy if you want to test your cache in debug mode.
@@ -38,7 +43,7 @@ named "facets" and falls back to default. Here a configuration example::
     },
     'facets': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-        'LOCATION': facets_location
+        'LOCATION': '/path/to/directory'
     }
 }
 
@@ -48,11 +53,10 @@ FACETS_HANDLERS
 A list of handlers. The default value is::
 
   (
-      'facets.handlers.CssUrls',
+      'facets.processors.css.CssUrlsProcessor',
   )
 
-These handlers are called during cache creation. You should keep ``facets.handler.CssUrls`` at first
-position as it is the one responsible for URL translation in CSS files.
+These handlers are called during static files collect and/or while compiling some files.
 
 See handlers_ section.
 
@@ -61,7 +65,7 @@ Usage
 =====
 
 All static files should be handled as with `Django staticfiles
-<https://docs.djangoproject.com/en/1.4/ref/contrib/staticfiles/>`_.
+<https://docs.djangoproject.com/en/1.6/ref/contrib/staticfiles/>`_.
 
 Collections
 -----------
@@ -85,9 +89,9 @@ Collections follow some rules:
 * Only for ``link`` and ``script`` HTML tags.
 * You can't mix ``link`` and ``script`` tags together.
 * With ``link`` tags, the following attributes must have the same values on
-  each tag: rel, type, media
+  each tag: ``rel``, ``type``, ``media``
 * With ``script`` tags, the following attributes must have the same values on
-  each tag: type
+  each tag: ``type``
 
 Collect
 -------
@@ -95,47 +99,47 @@ Collect
 Before using the cache, you should run ``./manage.py collectstatic``. This
 command generates cached files.
 
-You could run this command during project deployment.
-
-Development mode
-----------------
-
-You can test your project with cached files during development.
-
-- Set ``FACETS_ACTIVE`` setting to ``True``
-- Set ``DEBUG`` setting to ``True`` (not required)
-
-Then, you have to modify your ``urls.py`` file like this:
-
-::
-
-  from facets.urls import facets_urlpatterns
-
-  if settings.DEBUG:
-    if settings.FACETS_ACTIVE:
-        urlpatterns += facets_urlpatterns()
-    else:
-        urlpatterns += staticfiles_urlpatterns()
-
-Finally, start your development server with ``--nostatic`` option.
-
-
+You could run this command during project deployment. Please note that you MUST restart your
+project server after running collectstatic.
 
 .. _handlers:
 
 Handlers
 ========
 
-Handlers are classes that will be called after cached files creation. On each file, every defined
-and applicable handler is called. Here is a list of available handlers:
+Handlers are classes that take responsibility to transform an input file. There are two types of handlers: compilers and processors.
 
+Compilers
+---------
 
-facets.handlers.CssUrls
------------------------
+Compilers create final files for some preprocessors languages (Less, Sass, CoffeeScript, etc.).
+A compiler will be called during *collectstatic* and while serving static files if setting ``FACETS_ENABLED`` is set to ``False`` (usually during development).
+
+Please note that there can be only one compiler by file extension.
+
+facets.compilers.css.LessCompiler
++++++++++++++++++++++++++++++++++
+
+:Extension: ``less``
+:Options:
+
+  | **new_name**: ``{base}.css``
+  | **program**: ``/usr/bin/env lessc``
+  | **command**: ``{program} - {outfile}``
+
+This compiler creates CSS file using `Less <http://lesscss.org/>`_ preprocessor.
+
+Processors
+----------
+
+Processors are called during *collectstatic*. Their job is usually to optimize files.
+
+facets.processors.css.CssUrlsProcessor
+++++++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.css``
 
-This handler transforms every URL found in CSS files to point to cached files version. For
+This processor transforms every URL found in CSS files to point to cached files version. For
 example, this rule::
 
   h1 {
@@ -148,125 +152,134 @@ would become::
       background: url("/static/img/title-e221e1b36656.png");
   }
 
-**Note**: It is recommanded you always set this handler in first position.
+**Note**: It is recommended to always have this processor set.
 
-facets.handlers.CssMin
-----------------------
+facets.processors.css.CssMinProcessor
++++++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.css``
 
-This handler minifies CSS files using `cssmin <https://github.com/zacharyvoase/cssmin>`_.
+This processor minifies CSS files using `cssmin <https://github.com/zacharyvoase/cssmin>`_.
 
-facets.handlers.JsMin
----------------------
-
-:Scope: ``*.js``
-
-This handler minifies JavaScript files using `jsmin <http://pypi.python.org/pypi/jsmin>`_.
-
-facets.handlers.UglifyJs
-------------------------
+facets.processors.js.JsMinProcessor
++++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.js``
-:Options:
 
-  | ``COMMAND``: A list for command to call, with arguments (file name would be added automatically)
-  | eg. ``["/usr/bin/env", "node", "/path/to/uglifyjs", "--ascii"]``
+This processor minifies JavaScript files using `jsmin <http://pypi.python.org/pypi/jsmin>`_.
 
-This handler minifies JavaScript files using `UglifyJs 2 <https://github.com/mishoo/UglifyJS2>`_.
-
-facets.handlers.GoogleClosureCompiler
--------------------------------------
+facets.processors.js.UglifyJsProcessor
+++++++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.js``
 :Options:
 
-  | ``COMMAND``: A list for command to call, with arguments (file name would be added automatically)
-  | eg. ``["/usr/bin/java", "-jar", "/path/to/google-closure-compiler.jar"]``
+  | **program**: ``/usr/bin/env uglifyjs``
+  | **command**: ``{program} {infile} --ascii -m -c -o {outfile}``
 
-This handler minifies JavaScript files using `Google Closure Compiler
+This processor minifies JavaScript files using `UglifyJs 2 <https://github.com/mishoo/UglifyJS2>`_.
+
+facets.processors.js.GoogleClosureProcessor
++++++++++++++++++++++++++++++++++++++++++++
+
+:Scope: ``*.js``
+:Options:
+
+  | **program**: ``/usr/bin/env java -jar /path/to/compiler.jar`` (you'll have to change that)
+  | **command**: ``{program} {infile}``
+
+This processor minifies JavaScript files using `Google Closure Compiler
 <https://developers.google.com/closure/compiler/>`_.
 
-facets.handlers.YuiJs
----------------------
+facets.processors.js.YuiJsProcessor
++++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.js``
 :Options:
 
-  | ``COMMAND``: A list for command to call, with arguments (file name would be added automatically)
-  | eg. ``["/usr/bin/java", "-jar", "/path/to/yuicompressor.jar"]``
+  | **program**: ``/usr/bin/env java -jar /path/to/yuicompressor-xxx.jar`` (you'll have to change that)
+  | **command**: ``{program} {infile}``
 
-This handler minifies JavaScript files using `Yahoo UI Compressor
+This processor minifies JavaScript files using `Yahoo UI Compressor
 <http://developer.yahoo.com/yui/compressor/>`_.
 
-facets.handlers.YuiCss
-----------------------
+facets.processors.css.YuiCssProcessor
++++++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.css``
 :Options:
 
-  | ``COMMAND``: A list for command to call, with arguments (file name would be added automatically)
-  | eg. ``["/usr/bin/java", "-jar", "/path/to/yuicompressor.jar"]``
+  | **program**: ``/usr/bin/env java -jar /path/to/yuicompressor-xxx.jar`` (you'll have to change that)
+  | **command**: ``{program} {infile}``
 
-This handler minifies CSS files using `Yahoo UI Compressor
+This processor minifies CSS files using `Yahoo UI Compressor
 <http://developer.yahoo.com/yui/compressor/>`_.
 
-facets.handlers.OptiPNG
------------------------
+facets.processors.images.OptiPngProcessor
++++++++++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.png``
 :Options:
 
-  | ``COMMAND``: A list for command to call, with arguments (file name would be added automatically)
-  | default: ``["/usr/bin/env", "optipng", "-o7", "-nc"]``
+  | **program**: ``/usr/bin/env optipng``
+  | **command**: ``{program} -o7 -nc {infile}``
 
-This handler optimizes PNG files using `OptiPNG <http://optipng.sourceforge.net/>`_.
+This processor optimizes PNG files using `OptiPNG <http://optipng.sourceforge.net/>`_.
 
-facets.handlers.AdvPNG
-----------------------
+facets.processors.images.AdvPngProcessor
+++++++++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.png``
 :Options:
 
-  | ``COMMAND``: A list for command to call, with arguments (file name would be added automatically)
-  | default: ``["/usr/bin/env", "advpng", "-z", "-4"]``
+  | **program**: ``/usr/bin/env advpng``
+  | **command**: ``{program} -z -4 {infile}``
 
-This handler optimizes PNG files using `AdvanceCOMP advpng
+This processor optimizes PNG files using `AdvanceCOMP advpng
 <http://advancemame.sourceforge.net/doc-advpng.html>`_.
 
-facets.handlers.Jpegtran
-------------------------
+facets.processors.images.JpegtranProcessor
+++++++++++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.jpg, *.jpeg``
 :Options:
 
-  | ``COMMAND``: A list for command to call, with arguments (file name would be added automatically)
-  | default: ``["/usr/bin/env", "jpegtran", "-copy", "none", "-optimize"]``
+  | **program**: ``/usr/bin/env jpegtran``
+  | **command**: ``{program} -copy none -optimize {infile}``
 
-This handler optimizes JPEG files using `jpegtran <http://jpegclub.org/jpegtran/>`_.
+This processor optimizes JPEG files using `jpegtran <http://jpegclub.org/jpegtran/>`_.
 
-facets.handlers.Jpegoptim
--------------------------
+facets.processors.images.JpegoptimProcessor
++++++++++++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.jpg, *.jpeg``
 :Options:
 
-  | ``COMMAND``: A list for command to call, with arguments (file name would be added automatically)
-  | default: ``["/usr/bin/env", "jpegoptim"]``
+  | **program**: ``/usr/bin/env jpegoptim``
+  | **command**: ``{program} -q --strip-all {infile}``
 
-This handler optimizes JPEG files using `jpegoptim <http://freshmeat.net/projects/jpegoptim>`_.
+This processor optimizes JPEG files using `jpegoptim <http://freshmeat.net/projects/jpegoptim>`_.
 
-facets.handlers.GZip
---------------------
+facets.processors.images.GifsicleProcessor
+++++++++++++++++++++++++++++++++++++++++++
 
-:Scope: ``*.htm, *.html, *js, *.css, *.txt``
-:Options: ``LEVEL``: A compression level (0-9). Default to 5.
+:Scope: ``*.gif``
+:Options:
 
-This handler is a bit special. Instead of updating existing cached file, it creates a gziped copy.
-It could be very useful if you configured Nginx with `Gzip Static Module
+  | **program**: ``/usr/bin/env gifsicle``
+  | **command**: ``{program} --batch -O3 {infile}``
+
+This processor optimizes GIF files using `Gifsicle <http://www.lcdf.org/gifsicle/>`_.
+
+facets.processors.gz.GZipProcessor
+++++++++++++++++++++++++++++++++++
+
+:Scope: ``*.htm, *.html, *js, *.css, *.txt, *.eot, *.ttf, *.woff, *.svg``
+:Options: ``compresslevel``: A compression level (0-9). Default to 5.
+
+This processor is a bit special. Instead of updating existing cached file, it creates a gziped copy. It could be very useful if you configured Nginx with `Gzip Static Module
 <http://wiki.nginx.org/HttpGzipStaticModule>`_.
 
-It would of course be better to set this handler in last position in your settings.
 
 License
 =======

@@ -2,40 +2,35 @@
 #
 # This file is part of Django facets released under the MIT license.
 # See the LICENSE for more information.
+from __future__ import (print_function, division, absolute_import, unicode_literals)
+
 import re
+import shlex
+from subprocess import Popen, PIPE
 from urlparse import urljoin, urlsplit, urlunsplit
 
-from django.conf import settings
+from django.utils.encoding import smart_str
 
-CSS_URL_PATTERNS = (
-    (re.compile(r"""(url\(['"]{0,1}\s*(.*?)["']{0,1}\))"""), """url("{0}")"""),
-    (re.compile(r"""(@import\s*["']\s*(.*?)["'])"""), """@import url("{0}")"""),
-)
+from facets.conf import settings
 
 
-def normalize_css_urls(content, basedir, path_callback=None):
-    """
-    Transform all URLs in a CSS content as absolute paths.
-    """
-    def adapt_css_url(match, repl):
-        groups = list(match.groups())
-        original = groups[1]
+class CommandError(Exception):
+    pass
 
-        # Ignore HTTP URLs, data-uri and fragments
-        parts = urlsplit(original)
 
-        # Ignore URLs with scheme or netloc - http(s), data, //
-        if parts.scheme or parts.netloc:
-            return groups[0]
+class UrlsNormalizer(object):
+    patterns = (
+       (re.compile(r"""(url\(['"]{0,1}\s*(?P<url>.*?)["']{0,1}\))"""), """url("{new}")"""),
+       (re.compile(r"""(@import\s*["']\s*(?P<url>.*?)["'])"""), """@import url("{new}")"""),
+    )
 
-        # Return original URL if not path (could be just a fragment)
-        if not parts.path:
-            return groups[0]
+    def __init__(self, root_url=None):
+        self.root_url = root_url or settings.STATIC_URL
 
-        new_path = urljoin(base_src, parts.path)
+    def get_replace_args(self, parts, match):
+        original = match.group('url')
 
-        if callable(path_callback):
-            new_path = path_callback(new_path)
+        new_path = self.get_new_path(parts)
 
         # Rebuild URL
         parts = list(parts)
@@ -51,14 +46,85 @@ def normalize_css_urls(content, basedir, path_callback=None):
         elif original.endswith('#'):
             parts[2] += '#'
 
-        return repl.format(urlunsplit(parts))
+        return {
+            'new': urlunsplit(parts)
+        }
 
-    base_src = urljoin(settings.STATIC_URL, basedir)
-    if not base_src.endswith("/"):
-        base_src += "/"
+    def get_new_path(self, parts):
+        return urljoin(self.base_src, parts.path)
 
-    for pattern, repl in CSS_URL_PATTERNS:
-        rep_func = lambda match: adapt_css_url(match, repl)
-        content = pattern.sub(rep_func, content)
+    def replace(self, match, repl):
+        groups = match.groups()
 
-    return content
+        # Ignore HTTP URLs, data-uri and fragments
+        parts = urlsplit(match.group('url'))
+
+        # Ignore URLs with scheme or netloc - http(s), data, //
+        if parts.scheme or parts.netloc:
+            return groups[0]
+
+        # Return original URL if not path (could be just a fragment)
+        if not parts.path:
+            return groups[0]
+
+        kwargs = self.get_replace_args(parts, match)
+
+        return repl.format(**kwargs)
+
+    def normalize(self, content, location):
+        self.base_src = urljoin(self.root_url, location)
+        if not self.base_src.endswith('/'):
+            self.base_src += '/'
+
+        for pattern, repl in self.patterns:
+            rep_func = lambda m: self.replace(m, repl)
+            content = pattern.sub(rep_func, content)
+
+        return content
+
+
+class CssDependencies(UrlsNormalizer):
+    def __init__(self, root_url=None):
+        super(CssDependencies, self).__init__(root_url)
+        self.dependencies = {}
+
+    def get_new_path(self, parts):
+        path = super(CssDependencies, self).get_new_path(parts)
+        if path.startswith(self.root_url):
+            key = path[len(self.root_url):]
+            if not key in self.dependencies:
+                self.dependencies[key] = set([self.key_name])
+            else:
+                self.dependencies[key].add(self.key_name)
+
+        return path
+
+    def normalize(self, content, location, key_name):
+        self.key_name = key_name
+        return super(CssDependencies, self).normalize(content, location)
+
+
+class CommandHandlerMixin(object):
+    command = None
+    program = None
+
+    def execute_cmd(self, infile=None, outfile=None, data=None):
+        if not self.program:
+            raise CommandError('No program provided')
+
+        if not self.command:
+            raise CommandError('No command provided')
+
+        cmd = self.command.format(program=self.program, infile=infile, outfile=outfile)
+
+        try:
+            cmd = shlex.split(smart_str(cmd))
+            p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        except OSError as e:
+            raise CommandError('OSError on command: {0}'.format(str(e)))
+        else:
+            out, err = p.communicate(smart_str(data))
+            if p.returncode != 0:
+                raise CommandError('Command error: {0}'.format(err))
+
+            return out

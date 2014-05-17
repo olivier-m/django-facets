@@ -2,6 +2,8 @@
 #
 # This file is part of Django facets released under the MIT license.
 # See the LICENSE for more information.
+from __future__ import (print_function, division, absolute_import, unicode_literals)
+
 from StringIO import StringIO
 import hashlib
 import os.path
@@ -14,7 +16,7 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from django import template
 from django.utils.encoding import force_unicode
 
-from facets.utils import normalize_css_urls
+from facets.utils import UrlsNormalizer
 
 
 def _attr_data(data):
@@ -164,7 +166,7 @@ class MediaCollection(object):
                 data = force_unicode(fp.read())
 
                 if self.type == "link" and self.attrs.get("type") == "text/css":
-                    data = normalize_css_urls(data, os.path.dirname(path))
+                    data = UrlsNormalizer().normalize(data, os.path.dirname(path))
                 elif self.type == "script":
                     data = "(function() {\n%s\n})();" % data
 

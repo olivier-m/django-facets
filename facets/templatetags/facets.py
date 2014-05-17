@@ -2,10 +2,12 @@
 #
 # This file is part of Django facets released under the MIT license.
 # See the LICENSE for more information.
-from django import template
-from django.conf import settings
+from __future__ import (print_function, division, absolute_import, unicode_literals)
 
-from ..collections import MediaCollection
+from django import template
+
+from facets.collections import MediaCollection
+from facets.conf import settings
 
 register = template.Library()
 
@@ -18,7 +20,7 @@ class MediaCollectionNode(template.Node):
     def render(self, context):
         output = self.nodelist.render(context)
 
-        if not settings.FACETS_ACTIVE:
+        if not settings.FACETS_ENABLED:
             return output
 
         collection = MediaCollection(output, self.path)
