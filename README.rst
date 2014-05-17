@@ -148,6 +148,42 @@ facets.compilers.css.LibSassCompiler
 
 This compiler compiles Sass files using `libsass-python <http://dahlia.kr/libsass-python/>`_ preprocessor.
 
+facets.compilers.js.CoffeScriptCompiler
++++++++++++++++++++++++++++++++++++++++
+
+:Extensions: ``coffee``
+:Options:
+
+  | **new_name**: ``{base}.js``
+  | **program**: ``/usr/bin/env coffee``
+  | **command**: ``{program} -c --print {infile}``
+
+This compiler compiles CoffeeScript files using `CoffeeScript <http://coffeescript.org/>`_ command.
+
+facets.compilers.js.LiveScriptCompiler
+++++++++++++++++++++++++++++++++++++++
+
+:Extensions: ``ls``
+:Options:
+
+  | **new_name**: ``{base}.js``
+  | **program**: ``/usr/bin/env lsc``
+  | **command**: ``{program} -c --print {infile}``
+
+This compiler compiles LiveScript files using `LiveScript <http://livescript.net/>`_ command.
+
+facets.compilers.js.DartCompiler
+++++++++++++++++++++++++++++++++
+
+:Extensions: ``dart``
+:Options:
+
+  | **new_name**: ``{base}.js``
+  | **program**: ``/usr/bin/env dart2js``
+  | **command**: ``{program} -o {outfile} {infile}``
+
+This compiler compiles Dart files using `Dart <https://www.dartlang.org/>`_ dart2js.
+
 
 Processors
 ----------
