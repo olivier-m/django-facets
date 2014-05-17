@@ -120,7 +120,7 @@ Please note that there can be only one compiler by file extension.
 facets.compilers.css.LessCompiler
 +++++++++++++++++++++++++++++++++
 
-:Extension: ``less``
+:Extensions: ``less``
 :Options:
 
   | **new_name**: ``{base}.css``

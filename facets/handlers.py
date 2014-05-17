@@ -30,8 +30,9 @@ class HandlerList(object):
                 m = import_module(module_name)
                 klass = getattr(m, class_name)
 
-                if issubclass(klass, Compiler) and klass.extension is not None:
-                    self.compilers[klass.extension] = (klass, options)
+                if issubclass(klass, Compiler) and klass.extensions is not None:
+                    for ext in klass.extensions:
+                        self.compilers[ext] = (klass, options)
                 elif issubclass(klass, Processor) and klass.match is not None:
                     self.processors.append((klass, options))
             except (ImportError, AttributeError):

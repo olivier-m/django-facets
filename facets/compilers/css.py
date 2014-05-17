@@ -61,7 +61,7 @@ class LessImportNormalizer(UrlsNormalizer):
 
 
 class LessCompiler(CommandCompiler):
-    extension = 'less'
+    extensions = ('less',)
     new_name = '{base}.css'
 
     program = '/usr/bin/env lessc'
