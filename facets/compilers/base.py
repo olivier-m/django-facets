@@ -7,6 +7,9 @@ from __future__ import (print_function, division, absolute_import, unicode_liter
 from datetime import datetime
 import os.path
 
+from django.core.files.base import ContentFile
+from django.utils.encoding import smart_str
+
 from facets.utils import CommandHandlerMixin
 
 
@@ -34,6 +37,11 @@ class Compiler(object):
         the new relative path of saved file.
         """
         raise NotImplementedError()
+
+    def save_contents(self, contents):
+        out = ContentFile(smart_str(contents))
+        self.storage.exists(self.new_name) and self.storage.delete(self.new_name)
+        self.storage.save(self.new_name, out)
 
     def get_dependencies(self):
         return set()

@@ -9,10 +9,9 @@ import os.path
 import re
 from urlparse import urlunsplit, urlsplit
 
-from django.core.files.base import ContentFile
-from django.utils.encoding import force_unicode, smart_str
+from django.utils.encoding import force_unicode
 
-from facets.compilers.base import CommandCompiler
+from facets.compilers.base import CommandCompiler, Compiler, CompilerError
 from facets.finders import find_in_base_finders
 from facets.utils import UrlsNormalizer
 
@@ -91,10 +90,7 @@ class LessCompiler(CommandCompiler):
         if self._contents is None:
             self._set_contents()
 
-        self.execute_cmd(
-            infile=self.original, outfile=self.storage.path(self.new_name),
-            data=self._contents
-        )
+        self.execute_cmd(data=self._contents, outfile=self.storage.path(self.new_name))
         return self.new_name
 
 
@@ -170,15 +166,12 @@ class SassImportNormalizer(UrlsNormalizer):
         return super(SassImportNormalizer, self).normalize(*args, **kwargs)
 
 
-class SasscCompiler(CommandCompiler):
+class BaseSassCompiler(object):
     extensions = ('scss', 'sass')
     new_name = '{base}.css'
 
-    program = '/usr/bin/env sassc'
-    command = '{program} -'
-
     def __init__(self, *args, **kwargs):
-        super(SasscCompiler, self).__init__(*args, **kwargs)
+        super(BaseSassCompiler, self).__init__(*args, **kwargs)
         self._dependencies = None
         self._contents = None
 
@@ -194,13 +187,33 @@ class SasscCompiler(CommandCompiler):
 
         return self._dependencies
 
+
+class SasscCompiler(BaseSassCompiler, CommandCompiler):
+    program = '/usr/bin/env sassc'
+    command = '{program} -'
+
     def compile(self):
         if self._contents is None:
             self._set_contents()
 
         contents = self.execute_cmd(data=self._contents)
-        contents = ContentFile(smart_str(contents))
-        self.storage.exists(self.new_name) and self.storage.delete(self.new_name)
-        self.storage.save(self.new_name, contents)
+        self.save_contents(contents)
+
+        return self.new_name
+
+
+class LibSassCompiler(BaseSassCompiler, Compiler):
+    def compile(self):
+        try:
+            import sass
+        except ImportError:
+            raise CompilerError('Unable to import sass module.')
+
+
+        if self._contents is None:
+            self._set_contents()
+
+        contents = sass.compile(string=self._contents)
+        self.save_contents(contents)
 
         return self.new_name

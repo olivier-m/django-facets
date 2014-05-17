@@ -30,6 +30,13 @@ class Processor(object):
     def __str__(self):
         return b'%s' % self.__unicode__()
 
+    def process(self):
+        """
+        Process function. This function should save file to destination and return
+        the relative path of saved file (or None if not changed).
+        """
+        raise NotImplementedError()
+
     def read(self):
         with self.storage.open(self.path, 'rb') as fp:
             return force_unicode(fp.read())
@@ -37,14 +44,7 @@ class Processor(object):
     def save_contents(self, contents):
         out = ContentFile(smart_str(contents))
         self.storage.exists(self.path) and self.storage.delete(self.path)
-        self.storage._save(self.path, out)
-
-    def process(self):
-        """
-        Process function. This function should save file to destination and return
-        the relative path of saved file (or None if not changed).
-        """
-        raise NotImplementedError()
+        self.storage.save(self.path, out)
 
 
 class CommandProcessor(Processor, CommandHandlerMixin):
