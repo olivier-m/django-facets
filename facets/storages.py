@@ -55,10 +55,10 @@ class FacetsFilesMixin(object):
 
         return urljoin(self.base_url, filepath_to_uri(cached_file))
 
-    def cache_key(self, prefixed_path):
-        return force_unicode(urldefrag(prefixed_path)[0])
+    def cache_key(self, path):
+        return force_unicode(urldefrag(path)[0])
 
-    def hashed_name(self, prefixed_path, content):
+    def hashed_name(self, path, content):
         # Get the MD5 hash of the file
         md5 = hashlib.md5()
         if hasattr(content, 'chunks'):
@@ -69,7 +69,7 @@ class FacetsFilesMixin(object):
 
         md5sum = md5.hexdigest()[:12]
 
-        root, ext = os.path.splitext(prefixed_path)
+        root, ext = os.path.splitext(path)
         return u"%s-%s%s" % (root, md5sum, ext)
 
     def get_linked_files(self, paths):
@@ -81,18 +81,18 @@ class FacetsFilesMixin(object):
         result = {}
         n = CssDependencies()
         for prefixed_path, (storage, path) in files.items():
-            key_name = self.cache_key(prefixed_path)
+            key_name = self.cache_key(path)
             with storage.open(path, 'rb') as fp:
                 n.normalize(force_unicode(fp.read()), os.path.dirname(path), key_name)
                 result = n.dependencies
 
         return result
 
-    def copy_file(self, prefixed_path, storage, path, force=False):
+    def copy_file(self, storage, path, force=False):
         with storage.open(path) as original_file:
             # Compute key and hash
-            key_name = self.cache_key(prefixed_path)
-            hashed_name = self.hashed_name(force_unicode(prefixed_path), original_file)
+            key_name = self.cache_key(path)
+            hashed_name = self.hashed_name(force_unicode(path), original_file)
 
             if hasattr(original_file, 'seek'):
                 original_file.seek(0)
@@ -165,7 +165,7 @@ class FacetsFilesMixin(object):
         # Iterate on files and process them if not already cached
         for prefixed_path in sorted(paths.keys()):
             storage, path = paths[prefixed_path]
-            key_name, hashed_name, processed = self.copy_file(prefixed_path, storage, path)
+            key_name, hashed_name, processed = self.copy_file(storage, path)
             media_store[key_name] = hashed_name
 
             if processed:
@@ -187,7 +187,7 @@ class FacetsFilesMixin(object):
 
                 # Dependency forced update
                 storage, path = paths[_name]
-                key_name, hashed_name, processed = self.copy_file(_name, storage, path, True)
+                key_name, hashed_name, processed = self.copy_file(storage, path, True)
                 media_store[key_name] = hashed_name
 
                 if processed:
@@ -248,12 +248,7 @@ class FacetsFilesMixin(object):
             sys.stdout.write("Wrote collection '{0}'\n".format(collection.path))
 
             # Process file and apply handlers
-            key_name, hashed_name, processed = self.copy_file(
-                collection.path,
-                self,
-                collection.path,
-                True
-            )
+            key_name, hashed_name, processed = self.copy_file(self, collection.path, True)
 
             media_store[key_name] = hashed_name
             yield key_name, hashed_name, processed
