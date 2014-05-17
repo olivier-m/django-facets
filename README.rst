@@ -127,7 +127,27 @@ facets.compilers.css.LessCompiler
   | **program**: ``/usr/bin/env lessc``
   | **command**: ``{program} - {outfile}``
 
-This compiler creates CSS file using `Less <http://lesscss.org/>`_ preprocessor.
+This compiler compiles Less files using `Less <http://lesscss.org/>`_ preprocessor.
+
+facets.compilers.css.SasscCompiler
+++++++++++++++++++++++++++++++++++
+
+:Extensions: ``scss``, ``sass``
+:Options:
+
+  | **new_name**: ``{base}.css``
+  | **program**: ``/usr/bin/env sassc``
+  | **command**: ``{program} -``
+
+This compiler compiles Sass files using `SassC <http://libsass.org/#sassc>`_ preprocessor.
+
+facets.compilers.css.LibSassCompiler
+++++++++++++++++++++++++++++++++++++
+
+:Extensions: ``scss``, ``sass``
+
+This compiler compiles Sass files using `libsass-python <http://dahlia.kr/libsass-python/>`_ preprocessor.
+
 
 Processors
 ----------

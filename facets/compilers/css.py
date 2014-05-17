@@ -209,7 +209,6 @@ class LibSassCompiler(BaseSassCompiler, Compiler):
         except ImportError:
             raise CompilerError('Unable to import sass module.')
 
-
         if self._contents is None:
             self._set_contents()
 
