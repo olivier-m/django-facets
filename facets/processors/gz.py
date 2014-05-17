@@ -11,6 +11,7 @@ from facets.processors.base import Processor, ProcessorError
 
 class GZipProcessor(Processor):
     match = r'\.(htm|html|js|css|txt|eot|ttf|woff|svg)'
+    priority = 1000
 
     compresslevel = 5
 

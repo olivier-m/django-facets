@@ -28,6 +28,7 @@ class UrlsReplacer(UrlsNormalizer):
 
 class CssUrlsProcessor(Processor):
     match = r'\.css$'
+    priority = -1000
 
     def process(self):
         self.save_contents(

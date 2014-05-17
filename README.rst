@@ -56,7 +56,7 @@ A list of handlers. The default value is::
       'facets.processors.css.CssUrlsProcessor',
   )
 
-These handlers are called during static files collect and/or while compiling some files.
+These handlers are called during static files collect and/or while compiling some files. Order does not matter.
 
 See handlers_ section.
 
@@ -138,6 +138,7 @@ facets.processors.css.CssUrlsProcessor
 ++++++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.css``
+:Options: **priority**: -1000 (please don't change it)
 
 This processor transforms every URL found in CSS files to point to cached files version. For
 example, this rule::
@@ -275,7 +276,10 @@ facets.processors.gz.GZipProcessor
 ++++++++++++++++++++++++++++++++++
 
 :Scope: ``*.htm, *.html, *js, *.css, *.txt, *.eot, *.ttf, *.woff, *.svg``
-:Options: ``compresslevel``: A compression level (0-9). Default to 5.
+:Options:
+
+  | **priority**: 1000 (please don't change it)
+  | **compresslevel**: A compression level (0-9). Default to 5.
 
 This processor is a bit special. Instead of updating existing cached file, it creates a gziped copy. It could be very useful if you configured Nginx with `Gzip Static Module
 <http://wiki.nginx.org/HttpGzipStaticModule>`_.

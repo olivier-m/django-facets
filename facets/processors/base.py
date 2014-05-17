@@ -16,6 +16,7 @@ class ProcessorError(Exception):
 
 class Processor(object):
     match = None
+    priority = 0
 
     def __init__(self, media_store, storage, path, **options):
         self.media_store = media_store

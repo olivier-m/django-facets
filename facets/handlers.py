@@ -46,9 +46,12 @@ class HandlerList(object):
         return None
 
     def get_processors(self, media_store, storage, path):
+        processors = []
         for klass, options in self.processors:
             if re.search(klass.match, path):
-                yield klass(media_store, storage, path, **options)
+                processors.append(klass(media_store, storage, path, **options))
+
+        return sorted(processors, key=lambda p: p.priority)
 
 
 class DefaultHandlers(LazyObject):
