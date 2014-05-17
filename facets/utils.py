@@ -28,10 +28,24 @@ class UrlsNormalizer(object):
         self.root_url = root_url or settings.STATIC_URL
 
     def get_replace_args(self, parts, match):
-        original = match.group('url')
+        parts = self.rebuild_url_parts(match.group('url'), parts, self.get_new_path(parts))
 
-        new_path = self.get_new_path(parts)
+        return {
+            'new': urlunsplit(parts)
+        }
 
+    def check_parts(self, parts):
+        # Ignore URLs with scheme or netloc - http(s), data, //
+        if parts.scheme or parts.netloc:
+            return False
+
+        # Return original URL if not path (could be just a fragment)
+        if not parts.path:
+            return False
+
+        return True
+
+    def rebuild_url_parts(self, original, parts, new_path):
         # Rebuild URL
         parts = list(parts)
         parts[2] = new_path
@@ -46,25 +60,16 @@ class UrlsNormalizer(object):
         elif original.endswith('#'):
             parts[2] += '#'
 
-        return {
-            'new': urlunsplit(parts)
-        }
+        return parts
 
     def get_new_path(self, parts):
         return urljoin(self.base_src, parts.path)
 
     def replace(self, match, repl):
         groups = match.groups()
-
-        # Ignore HTTP URLs, data-uri and fragments
         parts = urlsplit(match.group('url'))
 
-        # Ignore URLs with scheme or netloc - http(s), data, //
-        if parts.scheme or parts.netloc:
-            return groups[0]
-
-        # Return original URL if not path (could be just a fragment)
-        if not parts.path:
+        if not self.check_parts(parts):
             return groups[0]
 
         kwargs = self.get_replace_args(parts, match)
