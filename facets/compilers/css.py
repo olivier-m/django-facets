@@ -6,6 +6,7 @@ from __future__ import (print_function, division, absolute_import, unicode_liter
 
 import os.path
 
+from django.conf import settings
 from django.utils.encoding import smart_str
 
 from facets.compilers.base import CommandCompiler, Compiler, CompilerError
@@ -24,9 +25,12 @@ class LessCompiler(CommandCompiler):
         outfile = self.storage.path(self.new_name)
 
         locations = list(get_base_finders_locations())
-        options = '--include-path={0}'.format(':'.join(reversed(locations)))
+        options = (
+            '--include-path={0}'.format(':'.join(reversed(locations))),
+            '--global-var=\'STATIC_URL="{0}"\''.format(settings.STATIC_URL)
+        )
 
-        self.execute_cmd(infile=self.original, outfile=outfile, options=options)
+        self.execute_cmd(infile=self.original, outfile=outfile, options=' '.join(options))
         return self.new_name
 
 
@@ -36,13 +40,17 @@ class SasscCompiler(CommandCompiler):
     new_name = '{base}.css'
 
     program = '/usr/bin/env sassc'
-    command = '{program} {options} {infile}'
+    command = '{program} {options}'
 
     def compile(self):
+        with open(self.original, 'r') as fp:
+            contents = smart_str('$STATIC_URL: "{0}";\n\n{1}'.format(settings.STATIC_URL, fp.read()))
+
         locations = list(get_base_finders_locations())
+        locations.append(os.path.dirname(self.original))
         options = '-I {0}'.format(':'.join(reversed(locations)))
 
-        contents = self.execute_cmd(infile=self.original, options=options)
+        contents = self.execute_cmd(data=contents, options=options)
         self.save_contents(contents)
 
         return self.new_name
@@ -60,7 +68,7 @@ class LibSassCompiler(Compiler):
             raise CompilerError('Unable to import sass module.')
 
         with open(self.original, 'r') as fp:
-            contents = fp.read()
+            contents = smart_str('$STATIC_URL: "{0}";\n\n{1}'.format(settings.STATIC_URL, fp.read()))
 
         locations = list(get_base_finders_locations())
         locations.append(os.path.dirname(self.original))
@@ -80,15 +88,18 @@ class StylusCompiler(CommandCompiler):
     new_name = '{base}.css'
 
     program = '/usr/bin/env stylus'
-    command = '{program} -p {options} {infile}'
+    command = '{program} -p {options}'
 
     def compile(self):
+        with open(self.original, 'r') as fp:
+            contents = 'STATIC_URL = \'{0}\'\n\n{1}'.format(settings.STATIC_URL, fp.read())
+
         locations = list(get_base_finders_locations())
         locations.insert(0, os.path.dirname(self.original))
 
         options = ' '.join(['-I {0}'.format(x) for x in locations])
 
-        contents = self.execute_cmd(infile=self.original, options=options)
+        contents = self.execute_cmd(data=contents, options=options)
         self.save_contents(contents)
 
         return self.new_name

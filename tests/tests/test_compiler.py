@@ -6,6 +6,7 @@ from __future__ import (print_function, division, absolute_import, unicode_liter
 
 import re
 
+from django.conf import settings
 from django.test.utils import override_settings
 
 from .base import TestCase
@@ -22,7 +23,10 @@ class LessTestCase(TestCase):
     def test_basic(self):
         r = self.client.get('/static/less/basic.less')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(drop_spaces(r.content), 'body{color:#ff0000;}')
+        self.assertEqual(
+            drop_spaces(r.content),
+            'body{color:#ff0000;background:url("%stest.png");}' % settings.STATIC_URL
+        )
 
     def test_deps(self):
         r = self.client.get('/static/less/deps.less')
@@ -38,7 +42,10 @@ class SasscTestCase(TestCase):
     def test_basic(self):
         r = self.client.get('/static/sass/basic.scss')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(drop_spaces(r.content), 'body{color:red;}')
+        self.assertEqual(
+            drop_spaces(r.content),
+            'body{color:red;background:url("%stest.png");}' % settings.STATIC_URL
+        )
 
     def test_deps(self):
         r = self.client.get('/static/sass/deps.scss')
@@ -54,7 +61,10 @@ class LibSassTestCase(TestCase):
     def test_basic(self):
         r = self.client.get('/static/sass/basic.scss')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(drop_spaces(r.content), 'body{color:red;}')
+        self.assertEqual(
+            drop_spaces(r.content),
+            'body{color:red;background:url("%stest.png");}' % settings.STATIC_URL
+        )
 
     def test_deps(self):
         r = self.client.get('/static/sass/deps.scss')
@@ -70,7 +80,10 @@ class StylusTestCase(TestCase):
     def test_basic(self):
         r = self.client.get('/static/styl/basic.styl')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(drop_spaces(r.content), 'body{color:#f00;}')
+        self.assertEqual(
+            drop_spaces(r.content),
+            'body{color:#f00;background:url("%stest.png");}' % settings.STATIC_URL
+        )
 
     def test_deps(self):
         r = self.client.get('/static/styl/deps.styl')
