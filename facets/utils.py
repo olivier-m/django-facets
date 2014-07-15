@@ -20,8 +20,8 @@ class CommandError(Exception):
 
 class UrlsNormalizer(object):
     patterns = (
-       (re.compile(r"""(url\(['"]{0,1}\s*(?P<url>.*?)["']{0,1}\))"""), """url("{new}")"""),
-       (re.compile(r"""(@import\s*["']\s*(?P<url>.*?)["'])"""), """@import url("{new}")"""),
+        (re.compile(r"""(url\(['"]{0,1}\s*(?P<url>.*?)["']{0,1}\))"""), """url("{new}")"""),
+        (re.compile(r"""(@import\s*["']\s*(?P<url>.*?)["'])"""), """@import url("{new}")"""),
     )
 
     def __init__(self, root_url=None):
@@ -113,14 +113,14 @@ class CommandHandlerMixin(object):
     command = None
     program = None
 
-    def execute_cmd(self, infile=None, outfile=None, data=None):
+    def execute_cmd(self, infile=None, outfile=None, data=None, **kwargs):
         if not self.program:
             raise CommandError('No program provided')
 
         if not self.command:
             raise CommandError('No command provided')
 
-        cmd = self.command.format(program=self.program, infile=infile, outfile=outfile)
+        cmd = self.command.format(program=self.program, infile=infile, outfile=outfile, **kwargs)
 
         try:
             cmd = shlex.split(smart_str(cmd))

@@ -18,7 +18,8 @@ class CompilerError(Exception):
 
 
 class Compiler(object):
-    extension = None
+    extensions = None
+    check_extensions = tuple()
     new_name = '{base}.{extension}'
     remove_original = True
 
@@ -43,25 +44,25 @@ class Compiler(object):
         self.storage.exists(self.new_name) and self.storage.delete(self.new_name)
         self.storage.save(self.new_name, out)
 
-    def get_dependencies(self):
-        return set()
-
     def should_compile(self):
         if not self.storage.exists(self.new_name):
             return True
 
-        otime = self.storage.modified_time(self.new_name)
-        mtime = datetime.fromtimestamp(os.path.getmtime(self.original))
-        if mtime > otime:
+        mtime = self.storage.modified_time(self.new_name)
+        otime = datetime.fromtimestamp(os.path.getmtime(self.original))
+
+        # Required file has changes
+        if otime > mtime:
             return True
 
-        for path in self.get_dependencies():
-            if not os.path.exists(path):
-                return True
-            mtime = datetime.fromtimestamp(os.path.getmtime(path))
-            if mtime > otime:
-                return True
-
+        # Check for other static files
+        from facets.finders import get_base_finders
+        for finder in get_base_finders():
+            for path, storage in finder.list(None):
+                if not any(path.endswith(x) for x in self.check_extensions):
+                    continue
+                if storage.modified_time(path) > mtime:
+                    return True
         return False
 
 

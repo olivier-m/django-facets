@@ -11,15 +11,30 @@ from facets.conf import settings
 from facets.handlers import default_handlers
 
 
+def get_base_finders():
+    """
+    List all base finders
+    """
+    for finder in get_finders():
+        if not isinstance(finder, FacetsFinder):
+            yield finder
+
+
+def get_base_finders_locations():
+    """
+    List all top directories in base finders
+    """
+    for finder in get_base_finders():
+        for storage in finder.storages.values():
+            yield storage.location
+
+
 def find_in_base_finders(path, all=False):
     """
     Find a file in all base finders
     """
     matches = []
-    for finder in get_finders():
-        if isinstance(finder, FacetsFinder):
-            continue
-
+    for finder in get_base_finders():
         result = finder.find(path, all=all)
         if not all and result:
             return result
