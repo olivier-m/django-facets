@@ -32,6 +32,7 @@ setup(
         'html5lib>=0.95'
     ],
     packages=packages,
+    test_suite='tests.runtests',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',

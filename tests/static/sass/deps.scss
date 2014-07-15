@@ -1,0 +1,9 @@
+@import "sass/include-1";
+@import "sass/include-2.sass";
+@import "included";
+
+body {
+    background: $background;
+    color: $color;
+    padding: $padding;
+}
