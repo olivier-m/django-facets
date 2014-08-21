@@ -4,7 +4,7 @@
 # See the LICENSE for more information.
 from setuptools import setup, find_packages
 
-packages = find_packages(exclude=['*.tests'])
+packages = find_packages(exclude=['tests', 'tests.*'])
 
 with open('facets/version.py') as fp:
     g = {}
