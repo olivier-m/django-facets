@@ -8,14 +8,15 @@ import re
 
 from django.conf import settings
 from django.test.utils import override_settings
+from django.utils.encoding import smart_str
 
 from .base import TestCase
 
-RE_SPACES = re.compile('\s', re.S)
+RE_SPACES = re.compile(r'\s', re.S)
 
 
 def drop_spaces(v):
-    return RE_SPACES.sub('', v)
+    return RE_SPACES.sub('', smart_str(v))
 
 
 @override_settings(FACETS_ENABLED=False, FACETS_HANDLERS=('facets.compilers.css.LessCompiler',))

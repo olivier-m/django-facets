@@ -7,7 +7,7 @@ from __future__ import (print_function, division, absolute_import, unicode_liter
 import os.path
 
 from django.conf import settings
-from django.utils.encoding import smart_str
+from django.utils.encoding import smart_str, force_bytes
 
 from facets.compilers.base import CommandCompiler, Compiler, CompilerError
 from facets.finders import get_base_finders_locations
@@ -44,7 +44,9 @@ class SasscCompiler(CommandCompiler):
 
     def compile(self):
         with open(self.original, 'r') as fp:
-            contents = smart_str('$STATIC_URL: "{0}";\n\n{1}'.format(settings.STATIC_URL, fp.read()))
+            contents = smart_str('$STATIC_URL: "{0}";\n\n{1}'.format(
+                settings.STATIC_URL, fp.read())
+            )
 
         locations = list(get_base_finders_locations())
         locations.append(os.path.dirname(self.original))
@@ -68,13 +70,16 @@ class LibSassCompiler(Compiler):
             raise CompilerError('Unable to import sass module.')
 
         with open(self.original, 'r') as fp:
-            contents = smart_str('$STATIC_URL: "{0}";\n\n{1}'.format(settings.STATIC_URL, fp.read()))
+            contents = smart_str('$STATIC_URL: "{0}";\n\n{1}'.format(
+                settings.STATIC_URL, fp.read())
+            )
 
         locations = list(get_base_finders_locations())
         locations.append(os.path.dirname(self.original))
 
-        contents = sass.compile_string(contents,
-            include_paths=smart_str(':'.join(reversed(locations)))
+        contents = sass.compile_string(
+            force_bytes(contents),
+            include_paths=force_bytes(':'.join(reversed(locations)))
         )
 
         self.save_contents(contents)

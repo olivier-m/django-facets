@@ -7,9 +7,9 @@ from __future__ import (print_function, division, absolute_import, unicode_liter
 import re
 import shlex
 from subprocess import Popen, PIPE
-from urlparse import urljoin, urlsplit, urlunsplit
 
-from django.utils.encoding import smart_str
+from django.utils.encoding import smart_str, force_bytes
+from django.utils.six.moves.urllib.parse import urljoin, urlsplit, urlunsplit
 
 from facets.conf import settings
 
@@ -97,7 +97,7 @@ class CssDependencies(UrlsNormalizer):
         path = super(CssDependencies, self).get_new_path(parts)
         if path.startswith(self.root_url):
             key = path[len(self.root_url):]
-            if not key in self.dependencies:
+            if key not in self.dependencies:
                 self.dependencies[key] = set([self.key_name])
             else:
                 self.dependencies[key].add(self.key_name)
@@ -128,7 +128,7 @@ class CommandHandlerMixin(object):
         except OSError as e:
             raise CommandError('OSError on command: {0}'.format(str(e)))
         else:
-            out, err = p.communicate(smart_str(data))
+            out, err = p.communicate(force_bytes(data))
             if p.returncode != 0:
                 raise CommandError('Command error: {0}'.format(err))
 

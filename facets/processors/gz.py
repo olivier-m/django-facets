@@ -20,7 +20,8 @@ class GZipProcessor(Processor):
 
         with self.storage.open(self.path, 'rb') as f_in:
             try:
-                f_out = GzipFile(self.storage.path(outfile), 'wb',
+                f_out = GzipFile(
+                    self.storage.path(outfile), 'wb',
                     compresslevel=self.compresslevel
                 )
             except Exception as e:

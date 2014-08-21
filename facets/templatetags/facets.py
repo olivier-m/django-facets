@@ -37,9 +37,11 @@ def mediacollection_node(parser, token):
     try:
         tag_name, path = token.split_contents()
     except ValueError:
-        raise template.TemplateSyntaxError, "%r tag requires a single argument" % token.contents.split()[0]
+        raise template.TemplateSyntaxError(
+            '{0} tag requires a single argument'.format(token.contents.split()[0]))
     if not (path[0] == path[-1] and path[0] in ('"', "'")):
-        raise template.TemplateSyntaxError, "%r tag's argument should be in quotes" % tag_name
+        raise template.TemplateSyntaxError(
+            '{0} tag\'s argument should be in quotes'.format(tag_name))
 
     path = path[1:-1]
 

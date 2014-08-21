@@ -29,10 +29,13 @@ setup(
     keywords='django assets css javascript compression',
     install_requires=[
         'django>=1.4',
-        'html5lib>=0.95'
+        'html5lib>=0.95',
     ],
     packages=packages,
     test_suite='tests.runtests',
+    tests_require=[
+        'sass',
+    ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',

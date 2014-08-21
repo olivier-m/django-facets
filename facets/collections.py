@@ -14,7 +14,7 @@ from html5lib import treebuilders
 from django.conf import settings
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django import template
-from django.utils.encoding import force_unicode
+from django.utils.encoding import force_str
 
 from facets.utils import UrlsNormalizer
 
@@ -163,7 +163,7 @@ class MediaCollection(object):
             filename = staticfiles_storage.path(path)
 
             with open(filename, 'rb') as fp:
-                data = force_unicode(fp.read())
+                data = force_str(fp.read())
 
                 if self.type == "link" and self.attrs.get("type") == "text/css":
                     data = UrlsNormalizer().normalize(data, os.path.dirname(path))
@@ -204,11 +204,10 @@ def parse_templates():
         for directory, _ds, files in os.walk(template_dir):
             for filename in files:
                 if filename.endswith('.html'):
-                    #total_count += 1
                     tmpl_path = os.path.join(directory, filename)
                     try:
                         yield parse_template(tmpl_path)
-                    except Exception, e:
+                    except Exception as e:
                         yield e
 
 
@@ -220,7 +219,7 @@ def parse_template(tmpl_path):
 
     try:
         t = template.Template(contents)
-    except template.TemplateSyntaxError, e:
+    except template.TemplateSyntaxError as e:
         raise Exception("django parser failed, error was: %s (%s)" % (str(e), tmpl_path))
     else:
         result = set()

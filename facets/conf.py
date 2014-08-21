@@ -14,6 +14,7 @@ DEFAULTS = {
     )
 }
 
+
 class FacetsSettings(object):
     def __init__(self, wrapped_settings):
         self._wrapped = wrapped_settings

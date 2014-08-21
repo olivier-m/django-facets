@@ -12,7 +12,7 @@ from urlparse import urldefrag, urljoin
 from django.contrib.staticfiles.storage import StaticFilesStorage
 from django.core.files.base import ContentFile
 from django.test.utils import override_settings
-from django.utils.encoding import force_unicode, smart_str, filepath_to_uri
+from django.utils.encoding import force_str, smart_str, filepath_to_uri
 
 from facets.cache import cache
 from facets.collections import MediaCollectionList, parse_templates
@@ -56,7 +56,7 @@ class FacetsFilesMixin(object):
         return urljoin(self.base_url, filepath_to_uri(cached_file))
 
     def cache_key(self, path):
-        return force_unicode(urldefrag(path)[0])
+        return force_str(urldefrag(path)[0])
 
     def hashed_name(self, path, content):
         # Get the MD5 hash of the file
@@ -83,7 +83,7 @@ class FacetsFilesMixin(object):
         for prefixed_path, (storage, path) in files.items():
             key_name = self.cache_key(path)
             with storage.open(path, 'rb') as fp:
-                n.normalize(force_unicode(fp.read()), os.path.dirname(path), key_name)
+                n.normalize(force_str(fp.read()), os.path.dirname(path), key_name)
                 result = n.dependencies
 
         return result
@@ -92,7 +92,7 @@ class FacetsFilesMixin(object):
         with storage.open(path) as original_file:
             # Compute key and hash
             key_name = self.cache_key(path)
-            hashed_name = self.hashed_name(force_unicode(path), original_file)
+            hashed_name = self.hashed_name(force_str(path), original_file)
 
             if hasattr(original_file, 'seek'):
                 original_file.seek(0)
@@ -230,9 +230,9 @@ class FacetsFilesMixin(object):
             key_name = self.cache_key(collection.path)
             hashed_name = self.file_cache.get(key_name)
 
-            file_exists = (self.exists(collection.path)
-                and hashed_name is not None
-                and self.exists(hashed_name))
+            file_exists = self.exists(collection.path) \
+                and hashed_name is not None \
+                and self.exists(hashed_name)
 
             if not has_changes and file_exists:
                 media_store[key_name] = hashed_name

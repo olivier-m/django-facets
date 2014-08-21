@@ -5,7 +5,7 @@
 from __future__ import (print_function, division, absolute_import, unicode_literals)
 
 from django.core.files.base import ContentFile
-from django.utils.encoding import force_unicode, smart_str
+from django.utils.encoding import force_str, smart_str
 
 from facets.utils import CommandHandlerMixin
 
@@ -39,7 +39,7 @@ class Processor(object):
 
     def read(self):
         with self.storage.open(self.path, 'rb') as fp:
-            return force_unicode(fp.read())
+            return force_str(fp.read())
 
     def save_contents(self, contents):
         out = ContentFile(smart_str(contents))
